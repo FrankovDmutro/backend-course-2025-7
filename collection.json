@@ -1,0 +1,166 @@
+{
+  "info": {
+    "name": "Inventory Service API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Postman collection for laboratory work #6 inventory service"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "itemId",
+      "value": "1741760000000"
+    },
+    {
+      "key": "photoPath",
+      "value": "C:/path/to/photo.jpg"
+    },
+    {
+      "key": "newPhotoPath",
+      "value": "C:/path/to/new-photo.jpg"
+    }
+  ],
+  "item": [
+    {
+      "name": "Register device",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "inventory_name",
+              "value": "Laptop",
+              "type": "text"
+            },
+            {
+              "key": "description",
+              "value": "Office device",
+              "type": "text"
+            },
+            {
+              "key": "photo",
+              "type": "file",
+              "src": "{{photoPath}}"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/register"
+      }
+    },
+    {
+      "name": "Get inventory list",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory"
+      }
+    },
+    {
+      "name": "Get item by ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory/{{itemId}}"
+      }
+    },
+    {
+      "name": "Update item",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Laptop Pro\",\n  \"description\": \"Updated\"\n}"
+        },
+        "url": "{{baseUrl}}/inventory/{{itemId}}"
+      }
+    },
+    {
+      "name": "Get item photo",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/inventory/{{itemId}}/photo"
+      }
+    },
+    {
+      "name": "Update item photo",
+      "request": {
+        "method": "PUT",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "photo",
+              "type": "file",
+              "src": "{{newPhotoPath}}"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/inventory/{{itemId}}/photo"
+      }
+    },
+    {
+      "name": "Delete item",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": "{{baseUrl}}/inventory/{{itemId}}"
+      }
+    },
+    {
+      "name": "Register form",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/RegisterForm.html"
+      }
+    },
+    {
+      "name": "Search form",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/SearchForm.html"
+      }
+    },
+    {
+      "name": "Search by ID (POST form)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/x-www-form-urlencoded"
+          }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            {
+              "key": "id",
+              "value": "{{itemId}}",
+              "type": "text"
+            },
+            {
+              "key": "has_photo",
+              "value": "true",
+              "type": "text"
+            }
+          ]
+        },
+        "url": "{{baseUrl}}/search"
+      }
+    }
+  ]
+}
