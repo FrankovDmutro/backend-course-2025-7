@@ -1,243 +1,161 @@
 # backend-course-2025-6
 
-Express-сервер для інвентаризації пристроїв з підтримкою CRUD-операцій, пошуку та завантаження фото.
+Сервіс інвентаризації на Express з Docker-оточенням для звичайного запуску, dev-режиму з автоперезапуском і відлагодженням через Chrome DevTools.
 
-## Поточна структура проєкту
+## Що потрібно перед стартом
 
-```text
-backend-course-2025-6/
-├─ app.js
-├─ main.js
-├─ package.json
-├─ RegisterForm.html
-├─ SearchForm.html
-├─ cache/
-├─ config/
-│  ├─ cli.js
-│  └─ upload.js
-├─ routes/
-│  ├─ inventoryRoutes.js
-│  ├─ searchRoutes.js
-│  └─ staticRoutes.js
-├─ store/
-│  └─ inventoryStore.js
-└─ utils/
-   └─ photoUrl.js
+- Docker Desktop (або Docker Engine + Compose Plugin)
+- Postman
+
+## Файли конфігурації
+
+- compose.yml: базовий запуск app + PostgreSQL
+- compose.dev.yml: dev-override (nodemon, монтування коду, inspector порт)
+- .env: локальні секрети і параметри запуску
+- .env.sample: приклад змінних для репозиторію
+- db/init.sql: SQL-ініціалізація БД при першому старті Postgres
+
+## Налаштування .env
+
+1. Якщо ще немає локального env-файлу, створіть .env на основі .env.sample.
+2. Заповніть реальні значення.
+
+Приклад мінімально необхідних змінних:
+
+```env
+SERVER_HOST=0.0.0.0
+PORT=3000
+CACHE_DIR=./cache
+
+DB_HOST=db
+DB_PORT=5432
+DB_NAME=inventory
+DB_USER=inventory_user
+DB_PASSWORD=inventory_pass
+DATABASE_URL=postgresql://inventory_user:inventory_pass@db:5432/inventory
 ```
 
-## Що за що відповідає
+## Запуск через Docker
 
-- `main.js` - точка входу, читає CLI-параметри, створює app, запускає сервер.
-- `app.js` - збирає Express-додаток, підключає middleware та роутери.
-- `config/cli.js` - обробка параметрів `--host`, `--port`, `--cache`, створення cache-директорії.
-- `config/upload.js` - конфігурація `multer` для завантаження фото.
-- `routes/inventoryRoutes.js` - `/inventory`, `/register`, операції з фото та видалення.
-- `routes/searchRoutes.js` - пошук пристрою (`GET /search`, `POST /search`).
-- `routes/staticRoutes.js` - віддача HTML-форм.
-- `store/inventoryStore.js` - in-memory сховище інвентарю.
-- `utils/photoUrl.js` - генерація URL для фото.
-
-## Встановлення і запуск
-
-1. Встановіть залежності:
+Запуск прод-подібного режиму:
 
 ```bash
-npm install
+docker compose -f compose.yml up -d --build
 ```
 
-2. Запуск у dev-режимі:
+Запуск dev-режиму (nodemon + debug):
 
 ```bash
-npm run dev
+docker compose -f compose.yml -f compose.dev.yml up -d --build
 ```
 
-3. Запуск без nodemon:
+Перевірити статус контейнерів:
 
 ```bash
-npm start
+docker compose -f compose.yml -f compose.dev.yml ps
 ```
 
-Значення за замовчуванням у `npm start`:
-- `host`: `localhost`
-- `port`: `3000`
-- `cache`: `./cache`
-
-## Запуск із власними параметрами
+Подивитися логи app:
 
 ```bash
-node main.js --host 127.0.0.1 --port 4000 --cache ./cache
+docker compose -f compose.yml -f compose.dev.yml logs app --tail 100
 ```
 
-Якщо передаєте параметри додатку через `nodemon`, обов'язково ставте `--` перед аргументами програми:
+Зупинити контейнери:
 
 ```bash
-nodemon main.js -- --host localhost --port 3000 --cache ./cache
+docker compose -f compose.yml -f compose.dev.yml down
 ```
 
-## HTML-форми
+## Dev-режим: nodemon і hot reload
 
-Після запуску:
-- `http://localhost:3000/RegisterForm.html`
-- `http://localhost:3000/SearchForm.html`
+У dev-режимі сервіс запускається через nodemon всередині контейнера.
 
-## Swagger
+Ознаки коректної роботи:
 
-Інтерактивна документація API доступна за адресою:
-- `http://localhost:3000/api-docs`
+- У логах є рядок з nodemon starting.
+- Після зміни .js-файлу на диску у логах з'являється nodemon restarting due to changes.
 
-Через Swagger UI можна:
-- переглядати всі endpoint-и;
-- дивитися приклади payload;
-- тестувати запити прямо з браузера (`Try it out`).
+Це означає, що застосунок перезапускається без перебудови контейнера.
 
-## Команди для перевірки API (Windows PowerShell / CMD)
+## Відлагодження через Chrome (node --inspect)
 
-Нижче послідовний сценарій перевірки. Запускайте, коли сервер уже працює.
+У dev-конфігурації відкрито порт 9229 і запуск іде з inspect.
 
-1. Перевірити, що список порожній/доступний:
+Як перевірити:
+
+1. Запустіть dev-контейнери.
+2. Відкрийте в Chrome адресу chrome://inspect/#devices.
+3. Оберіть Open dedicated DevTools for Node.
+4. Підключіться до процесу на localhost:9229.
+5. Відкрийте будь-який handler у routes, поставте breakpoint.
+6. Надішліть запит через Postman і переконайтесь, що виконання зупинилося на breakpoint.
+
+Технічна перевірка inspector endpoint:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing http://localhost:9229/json/version
+```
+
+## Postman: перевірка API
+
+У репозиторії є колекція:
+
+- collection.json
+
+Що зробити:
+
+1. Import у Postman файлу collection.json.
+2. Виставити змінні колекції:
+- baseUrl = http://localhost:3000
+- itemId = id елемента, створеного в попередньому запиті
+- photoPath = шлях до локального зображення
+- newPhotoPath = шлях до іншого зображення
+3. Прогнати запити по черзі.
+
+Очікування по статусах:
+
+- GET /inventory -> 200
+- POST /register -> 201
+- GET /inventory/:id -> 200 або 404
+- PUT /inventory/:id -> 200 або 404
+- PUT /inventory/:id/photo -> 200 або 404
+- GET /inventory/:id/photo -> 200 або 404
+- POST /search -> 200 або 404
+- DELETE /inventory/:id -> 200 або 404
+
+## Корисні команди діагностики
+
+Перезапуск тільки app-сервісу:
+
+```bash
+docker compose -f compose.yml -f compose.dev.yml restart app
+```
+
+Перевірити, що app відповідає:
 
 ```bash
 curl http://localhost:3000/inventory
 ```
 
-2. Створити пристрій без фото:
+Подивитися останні логи БД:
 
 ```bash
-curl -X POST http://localhost:3000/register ^
-  -F "inventory_name=Laptop" ^
-  -F "description=Office device"
+docker compose -f compose.yml -f compose.dev.yml logs db --tail 100
 ```
 
-3. Створити пристрій з фото:
+## Скидання БД (якщо потрібно заново виконати init.sql)
+
+Увага: команда нижче видаляє docker volume з даними Postgres.
 
 ```bash
-curl -X POST http://localhost:3000/register ^
-  -F "inventory_name=Phone" ^
-  -F "description=With photo" ^
-  -F "photo=@C:/path/to/photo.jpg"
+docker compose -f compose.yml -f compose.dev.yml down -v
+docker compose -f compose.yml -f compose.dev.yml up -d --build
 ```
 
-4. Отримати список і скопіювати `id` потрібного елемента:
+## Доступні URL
 
-```bash
-curl http://localhost:3000/inventory
-```
-
-5. Отримати елемент за `id`:
-
-```bash
-curl http://localhost:3000/inventory/<ID>
-```
-
-6. Оновити назву/опис:
-
-```bash
-curl -X PUT http://localhost:3000/inventory/<ID> ^
-  -H "Content-Type: application/json" ^
-  -d "{\"name\":\"Laptop Pro\",\"description\":\"Updated\"}"
-```
-
-7. Пошук через POST (вимога лабораторної):
-
-```bash
-curl -X POST http://localhost:3000/search ^
-  -H "Content-Type: application/x-www-form-urlencoded" ^
-  -d "id=<ID>&has_photo=true"
-```
-
-8. Додаткова сумісність: пошук через GET (опційно):
-
-```bash
-curl "http://localhost:3000/search?id=<ID>&includePhoto=true"
-```
-
-9. Оновити фото:
-
-```bash
-curl -X PUT http://localhost:3000/inventory/<ID>/photo ^
-  -F "photo=@C:/path/to/new-photo.jpg"
-```
-
-10. Отримати фото:
-
-```bash
-curl http://localhost:3000/inventory/<ID>/photo --output downloaded-photo.jpg
-```
-
-11. Видалити елемент:
-
-```bash
-curl -X DELETE http://localhost:3000/inventory/<ID>
-```
-
-12. Перевірити, що після видалення повертається 404:
-
-```bash
-curl http://localhost:3000/inventory/<ID>
-```
-
-## Коротка специфіка endpoint-ів
-
-1. `GET /inventory`
-- `200 OK`, масив елементів.
-
-2. `POST /register`
-- `multipart/form-data`: `inventory_name` (required), `description` (optional), `photo` (optional).
-- `201 Created` або `400 Bad Request`.
-
-3. `GET /inventory/:id`
-- `200 OK` або `404 Not found`.
-
-4. `PUT /inventory/:id`
-- body: `name` та/або `description`.
-- `200 OK` або `404 Not found`.
-
-5. `GET /inventory/:id/photo`
-- `200 OK` (image/jpeg) або `404 Not found`.
-
-6. `PUT /inventory/:id/photo`
-- `multipart/form-data`, поле `photo`.
-- `200 OK` або `404 Not found`.
-
-7. `DELETE /inventory/:id`
-- `200 OK` або `404 Not found`.
-
-8. `POST /search`
-- `application/x-www-form-urlencoded`: `id`, `has_photo=true`.
-- `200 OK` або `404 Not Found`.
-
-9. `GET /search?id=<id>&includePhoto=true` (додатково)
-- `200 OK` або `404 Not Found`.
-
-## Postman
-
-У репозиторій додано готову колекцію:
-- `collection.json`
-
-Що робити:
-1. Відкрий Postman.
-2. `Import` -> обери файл `collection.json`.
-3. Задай значення змінних `baseUrl`, `itemId`, `photoPath`, `newPhotoPath`.
-4. Запускай запити по черзі для перевірки всіх вимог.
-
-## Відповідність вимогам (чекліст)
-
-- Реєстрація пристрою (`POST /register`, `multipart/form-data`) - виконано.
-- Список інвентарю (`GET /inventory`) - виконано.
-- Отримання речі (`GET /inventory/:id`) - виконано.
-- Оновлення даних (`PUT /inventory/:id`, JSON) - виконано.
-- Отримання фото (`GET /inventory/:id/photo`, `Content-Type: image/jpeg`) - виконано.
-- Оновлення фото (`PUT /inventory/:id/photo`) - виконано.
-- Видалення (`DELETE /inventory/:id`) - виконано.
-- Пошук з форми (`POST /search`, `x-www-form-urlencoded`, `id`, `has_photo`) - виконано.
-- Форма реєстрації (`GET /RegisterForm.html`) - виконано.
-- Форма пошуку (`GET /SearchForm.html`) - виконано.
-- Невідомий/непідтримуваний метод -> `405 Method not allowed` - виконано.
-- Успішні запити мають `200`, `POST /register` має `201` - виконано.
-- Postman collection (`collection.json`) у репозиторії - виконано.
-
-## Нотатки
-
-- Дані інвентарю зберігаються в пам'яті процесу (після перезапуску сервера список очищається).
-- Фото зберігаються в директорії `cache`.
-- Для невідомих маршрутів повертається `405 Method not allowed`.
+- API: http://localhost:3000
+- Swagger UI: http://localhost:3000/api-docs
+- Register form: http://localhost:3000/RegisterForm.html
+- Search form: http://localhost:3000/SearchForm.html
