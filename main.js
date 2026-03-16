@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const getServerConfig = require('./config/cli');
 const createUpload = require('./config/upload');
 const createApp = require('./app');

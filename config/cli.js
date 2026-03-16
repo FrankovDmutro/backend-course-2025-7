@@ -1,12 +1,14 @@
 const fs = require('fs');
-const { program } = require('commander');
+const { Command } = require('commander');
 
 function getServerConfig(argv = process.argv) {
+    const program = new Command();
+
     program
         .helpOption(false)
-        .requiredOption('-h, --host <host>', 'адреса сервера')
-        .requiredOption('-p, --port <port>', 'порт сервера')
-        .requiredOption('-c, --cache <cache>', 'шлях до директорії кешу');
+        .option('-h, --host <host>', 'адреса сервера', process.env.SERVER_HOST || 'localhost')
+        .option('-p, --port <port>', 'порт сервера', process.env.PORT || '3000')
+        .option('-c, --cache <cache>', 'шлях до директорії кешу', process.env.CACHE_DIR || './cache');
 
     program.parse(argv);
     const { host, port, cache } = program.opts();
