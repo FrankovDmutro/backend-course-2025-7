@@ -1,14 +1,14 @@
 {
-  "name": "backend-course-2025-6",
+  "name": "backend-course-2025-7",
   "version": "1.0.0",
   "description": "",
-  "homepage": "https://github.com/FrankovDmutro/backend-course-2025-6#readme",
+  "homepage": "https://github.com/FrankovDmutro/backend-course-2025-7#readme",
   "bugs": {
-    "url": "https://github.com/FrankovDmutro/backend-course-2025-6/issues"
+    "url": "https://github.com/FrankovDmutro/backend-course-2025-7/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FrankovDmutro/backend-course-2025-6.git"
+    "url": "git+https://github.com/FrankovDmutro/backend-course-2025-7.git"
   },
   "license": "ISC",
   "author": "",
@@ -16,8 +16,8 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node main.js --host localhost --port 3000 --cache ./cache",
-    "dev": "nodemon main.js -- --host localhost --port 3000 --cache ./cache"
+    "start": "set NODE_PATH=./node_modules&& node main.js --host localhost --port 3000 --cache ./cache",
+    "dev": "set NODE_PATH=./node_modules&& nodemon main.js -- --host localhost --port 3000 --cache ./cache"
   },
   "dependencies": {
     "commander": "^14.0.3",
@@ -29,6 +29,5 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
-  },
-  "keywords": []
+  }
 }
