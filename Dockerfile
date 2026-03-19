@@ -9,7 +9,8 @@ RUN npm --prefix ./app ci
 # Copy project sources used at runtime
 COPY app ./app
 COPY back ./back
+COPY front ./front
 
 EXPOSE 3000
 
-CMD ["node", "app/main.js"]
+CMD ["npm", "--prefix", "./app", "run", "dev"]

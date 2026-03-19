@@ -1,9 +1,9 @@
 services:
-  backend:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: backend-course-2025-7
+    container_name: app
     env_file:
       - ./app/.env
     ports:
@@ -11,4 +11,35 @@ services:
     environment:
       - NODE_ENV=development
       - HOST=0.0.0.0
+      - PORT=3000
     restart: unless-stopped
+
+  back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: back
+    env_file:
+      - ./app/.env
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=3001
+    restart: unless-stopped
+
+  front:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: front
+    env_file:
+      - ./app/.env
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+      - PORT=3002
+    restart: unless-stopped'
