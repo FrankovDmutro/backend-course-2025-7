@@ -16,11 +16,12 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "set NODE_PATH=./node_modules&& node main.js --host localhost --port 3000 --cache ./cache",
-    "dev": "set NODE_PATH=./node_modules&& nodemon main.js -- --host localhost --port 3000 --cache ./cache"
+    "start": "node main.js",
+    "dev": "nodemon main.js"
   },
   "dependencies": {
     "commander": "^14.0.3",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "multer": "^2.1.1",
     "superagent": "^10.3.0",
@@ -28,6 +29,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@ljharb/tsconfig": "^0.2.2",
     "nodemon": "^3.1.14"
   }
 }

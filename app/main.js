@@ -1,4 +1,14 @@
 const path = require('path');
+const Module = require('module');
+
+const appNodeModulesPath = path.join(__dirname, 'node_modules');
+process.env.NODE_PATH = process.env.NODE_PATH
+    ? `${process.env.NODE_PATH}${path.delimiter}${appNodeModulesPath}`
+    : appNodeModulesPath;
+Module._initPaths();
+
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const getServerConfig = require('../back/config/cli');
 const createUpload = require('../back/config/upload');
 const createApp = require('../back/app');
