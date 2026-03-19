@@ -9,7 +9,7 @@ function createInventoryRoutes({ host, port, cache, upload, inventoryStore }) {
     router.get('/inventory', (req, res) => {
         const list = inventoryStore.getAll().map(item => ({
             ...item,
-            photo_url: item.photo ? buildPhotoUrl(host, port, item.id) : null
+            photo_url: item.photo ? buildPhotoUrl(req, item.id) : null
         }));
 
         res.status(200).json(list);
@@ -37,7 +37,7 @@ function createInventoryRoutes({ host, port, cache, upload, inventoryStore }) {
 
         return res.status(200).json({
             ...item,
-            photo_url: item.photo ? buildPhotoUrl(host, port, item.id) : null
+            photo_url: item.photo ? buildPhotoUrl(req, item.id) : null
         });
     });
 

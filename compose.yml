@@ -1,22 +1,20 @@
 services:
-  # app: full server from app/main.js (API + static forms + Swagger)
+  # app: єдина публічна точка входу (gateway) на порті 3000
+  # / -> front, API маршрути -> back
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: nginx:1.27-alpine
     container_name: app
-    env_file:
-      - ./app/.env
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - HOST=0.0.0.0
-      - PORT=3000
-      - ENABLE_STATIC_ROUTES=true
+    volumes:
+      - ./app/nginx.gateway.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - front
+      - back
     restart: unless-stopped
 
-  # back: API-only server (без віддачі HTML сторінок)
+  # back: головний бізнес-сервіс (API)
+  # не має зовнішнього порту, доступний тільки через app gateway
   back:
     build:
       context: .
@@ -24,22 +22,52 @@ services:
     container_name: back
     env_file:
       - ./app/.env
-    ports:
-      - "3001:3001"
     command: ["node", "./back/main.js"]
     environment:
       - NODE_ENV=development
       - HOST=0.0.0.0
       - PORT=3001
       - ENABLE_STATIC_ROUTES=false
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-inventory}
+      - DB_USER=${POSTGRES_USER:-postgres}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:3000}
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
-  # front: окремий статичний веб-сервер для HTML форм
+  # front: статичний сервер HTML (внутрішній)
+  # не має зовнішнього порту, віддається через app gateway
   front:
     image: nginx:1.27-alpine
     container_name: front
-    ports:
-      - "3002:80"
     volumes:
       - ./front:/usr/share/nginx/html:ro
     restart: unless-stopped
+
+  # db: PostgreSQL із ініціалізацією схеми з docker-entrypoint-initdb.d
+  # креденшіали/назва БД беруться з app/.env через env_file
+  db:
+    image: postgres:16-alpine
+    container_name: db
+    env_file:
+      - ./app/.env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-inventory}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-inventory}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  db_data:
