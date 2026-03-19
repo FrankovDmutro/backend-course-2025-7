@@ -5,7 +5,15 @@ const createSearchRoutes = require('./routes/searchRoutes');
 const createStaticRoutes = require('./routes/staticRoutes');
 const createOpenApiSpec = require('./docs/openapi');
 
-function createApp({ host, port, cache, upload, inventoryStore, rootDir = process.cwd() }) {
+function createApp({
+    host,
+    port,
+    cache,
+    upload,
+    inventoryStore,
+    rootDir = process.cwd(),
+    enableStaticRoutes = true
+}) {
     const app = express();
     const openApiSpec = createOpenApiSpec({ host, port });
 
@@ -16,7 +24,9 @@ function createApp({ host, port, cache, upload, inventoryStore, rootDir = proces
 
     app.use(createInventoryRoutes({ host, port, cache, upload, inventoryStore }));
     app.use(createSearchRoutes({ host, port, inventoryStore }));
-    app.use(createStaticRoutes({ rootDir }));
+    if (enableStaticRoutes) {
+        app.use(createStaticRoutes({ rootDir }));
+    }
 
     app.use((req, res) => {
         res.status(405).send('Method not allowed');

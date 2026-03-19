@@ -1,4 +1,5 @@
 services:
+  # app: full server from app/main.js (API + static forms + Swagger)
   app:
     build:
       context: .
@@ -12,8 +13,10 @@ services:
       - NODE_ENV=development
       - HOST=0.0.0.0
       - PORT=3000
+      - ENABLE_STATIC_ROUTES=true
     restart: unless-stopped
 
+  # back: API-only server (без віддачі HTML сторінок)
   back:
     build:
       context: .
@@ -23,23 +26,20 @@ services:
       - ./app/.env
     ports:
       - "3001:3001"
+    command: ["node", "./back/main.js"]
     environment:
       - NODE_ENV=development
       - HOST=0.0.0.0
       - PORT=3001
+      - ENABLE_STATIC_ROUTES=false
     restart: unless-stopped
 
+  # front: окремий статичний веб-сервер для HTML форм
   front:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: nginx:1.27-alpine
     container_name: front
-    env_file:
-      - ./app/.env
     ports:
-      - "3002:3002"
-    environment:
-      - NODE_ENV=development
-      - HOST=0.0.0.0
-      - PORT=3002
-    restart: unless-stopped'
+      - "3002:80"
+    volumes:
+      - ./front:/usr/share/nginx/html:ro
+    restart: unless-stopped
