@@ -1,10 +1,10 @@
 const express = require('express');
 const buildPhotoUrl = require('../utils/photoUrl');
 
-function createSearchRoutes({ host, port, inventoryStore }) {
+function createSearchRoutes({ inventoryStore }) {
     const router = express.Router();
 
-    const handleSearch = (source, res) => {
+    const handleSearch = (source, req, res) => {
         const id = source.id;
         const includePhoto = source.includePhoto || source.has_photo;
         const item = inventoryStore.findById(id);
@@ -13,14 +13,14 @@ function createSearchRoutes({ host, port, inventoryStore }) {
 
         const responseData = { ...item };
         if (includePhoto === 'true' || includePhoto === 'on' || includePhoto === true || includePhoto === '1') {
-            responseData.photo_link = buildPhotoUrl(host, port, id);
+            responseData.photo_link = buildPhotoUrl(req, id);
         }
 
         return res.status(200).json(responseData);
     };
 
-    router.get('/search', (req, res) => handleSearch(req.query, res));
-    router.post('/search', (req, res) => handleSearch(req.body, res));
+    router.get('/search', (req, res) => handleSearch(req.query, req, res));
+    router.post('/search', (req, res) => handleSearch(req.body, req, res));
 
     return router;
 }

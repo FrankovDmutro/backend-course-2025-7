@@ -3,7 +3,7 @@ const path = require('path');
 const express = require('express');
 const buildPhotoUrl = require('../utils/photoUrl');
 
-function createInventoryRoutes({ host, port, cache, upload, inventoryStore }) {
+function createInventoryRoutes({ cache, upload, inventoryStore }) {
     const router = express.Router();
 
     router.get('/inventory', (req, res) => {

@@ -22,8 +22,8 @@ function createApp({
 
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
-    app.use(createInventoryRoutes({ host, port, cache, upload, inventoryStore }));
-    app.use(createSearchRoutes({ host, port, inventoryStore }));
+    app.use(createInventoryRoutes({ cache, upload, inventoryStore }));
+    app.use(createSearchRoutes({ inventoryStore }));
     if (enableStaticRoutes) {
         app.use(createStaticRoutes({ rootDir }));
     }
