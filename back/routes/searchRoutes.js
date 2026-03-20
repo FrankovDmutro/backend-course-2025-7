@@ -1,6 +1,10 @@
 const express = require('express');
 const buildPhotoUrl = require('../utils/photoUrl');
 
+function shouldIncludePhoto(value) {
+    return value === 'true' || value === 'on' || value === true || value === '1';
+}
+
 function createSearchRoutes({ inventoryStore }) {
     const router = express.Router();
 
@@ -12,7 +16,7 @@ function createSearchRoutes({ inventoryStore }) {
         if (!item) return res.status(404).send('Not Found');
 
         const responseData = { ...item };
-        if (includePhoto === 'true' || includePhoto === 'on' || includePhoto === true || includePhoto === '1') {
+        if (shouldIncludePhoto(includePhoto)) {
             responseData.photo_link = buildPhotoUrl(req, id);
         }
 
