@@ -14,7 +14,7 @@ function saveToFile() {
 }
 
 // Ініціалізація: прочитати дані з файлу
-function initialize(filePath) {
+async function initialize(filePath) {
     dataFilePath = filePath;
     try {
         if (fs.existsSync(filePath)) {
@@ -32,15 +32,15 @@ function initialize(filePath) {
     }
 }
 
-function getAll() {
+async function getAll() {
     return inventory;
 }
 
-function findById(id) {
+async function findById(id) {
     return inventory.find(item => item.id === id);
 }
 
-function addItem({ name, description = '', photo = null }) {
+async function addItem({ name, description = '', photo = null }) {
     const newItem = {
         id: Date.now().toString(),
         name,
@@ -53,8 +53,8 @@ function addItem({ name, description = '', photo = null }) {
     return newItem;
 }
 
-function updateItem(id, { name, description }) {
-    const item = findById(id);
+async function updateItem(id, { name, description }) {
+    const item = inventory.find(existingItem => existingItem.id === id);
     if (!item) return null;
 
     if (name) item.name = name;
@@ -64,8 +64,8 @@ function updateItem(id, { name, description }) {
     return item;
 }
 
-function updatePhoto(id, photoFilename) {
-    const item = findById(id);
+async function updatePhoto(id, photoFilename) {
+    const item = inventory.find(existingItem => existingItem.id === id);
     if (!item) return null;
 
     item.photo = photoFilename;
@@ -73,7 +73,7 @@ function updatePhoto(id, photoFilename) {
     return item;
 }
 
-function removeItem(id) {
+async function removeItem(id) {
     const index = inventory.findIndex(item => item.id === id);
     if (index === -1) return null;
 

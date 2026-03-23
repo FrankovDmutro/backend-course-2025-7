@@ -8,7 +8,7 @@ function initNodePath(appNodeModulesPath) {
     Module._initPaths();
 }
 
-function startServer({
+async function startServer({
     appNodeModulesPath,
     envFilePath,
     dataFilePath,
@@ -23,11 +23,14 @@ function startServer({
     const getServerConfig = require('./config/cli');
     const createUpload = require('./config/upload');
     const createApp = require('./app');
-    const inventoryStore = require('./store/inventoryStore');
+    const storageBackend = (process.env.STORAGE_BACKEND || 'json').toLowerCase();
+    const inventoryStore = storageBackend === 'postgres'
+        ? require('./store/inventoryStorePg')
+        : require('./store/inventoryStore');
 
     const { host, port, cache } = getServerConfig();
     const upload = createUpload(cache);
-    inventoryStore.initialize(dataFilePath);
+    await inventoryStore.initialize(dataFilePath);
 
     const app = createApp({
         host,
@@ -42,7 +45,11 @@ function startServer({
     app.listen(port, host, () => {
         console.log(`${startMessage} на http://${host}:${port}`);
         console.log(`Кеш директорія: ${cache}`);
-        console.log(`Дані зберігаються в: ${dataFilePath}`);
+        if (storageBackend === 'postgres') {
+            console.log('Дані зберігаються в: PostgreSQL');
+        } else {
+            console.log(`Дані зберігаються в: ${dataFilePath}`);
+        }
     });
 }
 

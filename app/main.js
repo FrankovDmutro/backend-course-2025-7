@@ -7,4 +7,7 @@ startServer({
     dataFilePath: path.join(__dirname, 'data.json'),
     rootDir: __dirname,
     startMessage: 'Сервер запущено'
+}).catch((error) => {
+    console.error('Помилка запуску сервера:', error);
+    process.exit(1);
 });

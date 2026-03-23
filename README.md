@@ -73,13 +73,22 @@ app (Nginx gateway) -> front (Nginx static, внутрішній)
 - app звертається до front як front:80;
 - back звертається до db як db:5432.
 
+## Де зберігаються дані
+
+Сховище перемикається змінною `STORAGE_BACKEND`:
+
+- `json` (за замовчуванням): збереження у app/data.json через back/store/inventoryStore.js
+- `postgres`: збереження у таблицю inventory_items через back/store/inventoryStorePg.js
+
+У Docker в compose.yml для сервісу back встановлено `STORAGE_BACKEND=postgres`, тому дані з API-запитів зберігаються в PostgreSQL.
+
 
 ## Потік запиту (приклад POST /register)
 
 1. Клієнт надсилає POST http://localhost:3000/register
 2. app (Nginx) маршрутизує запит у back:3001
 3. back обробляє запит через inventoryRoutes
-4. inventoryStore додає запис у app/data.json
+4. inventoryStore додає запис у вибране сховище (у Docker: PostgreSQL)
 5. Відповідь повертається клієнту через app
 
 ## Запуск проєкту

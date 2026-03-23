@@ -6,8 +6,9 @@ const buildPhotoUrl = require('../utils/photoUrl');
 function createInventoryRoutes({ cache, upload, inventoryStore }) {
     const router = express.Router();
 
-    router.get('/inventory', (req, res) => {
-        const list = inventoryStore.getAll().map(item => ({
+    router.get('/inventory', async (req, res) => {
+        const items = await inventoryStore.getAll();
+        const list = items.map(item => ({
             ...item,
             photo_url: item.photo ? buildPhotoUrl(req, item.id) : null
         }));
@@ -15,14 +16,14 @@ function createInventoryRoutes({ cache, upload, inventoryStore }) {
         res.status(200).json(list);
     });
 
-    router.post('/register', upload.single('photo'), (req, res) => {
+    router.post('/register', upload.single('photo'), async (req, res) => {
         const { inventory_name, description } = req.body;
 
         if (!inventory_name) {
             return res.status(400).send('Bad Request: name is required');
         }
 
-        const newItem = inventoryStore.addItem({
+        const newItem = await inventoryStore.addItem({
             name: inventory_name,
             description: description || '',
             photo: req.file ? req.file.filename : null
@@ -31,8 +32,8 @@ function createInventoryRoutes({ cache, upload, inventoryStore }) {
         return res.status(201).json(newItem);
     });
 
-    router.get('/inventory/:id', (req, res) => {
-        const item = inventoryStore.findById(req.params.id);
+    router.get('/inventory/:id', async (req, res) => {
+        const item = await inventoryStore.findById(req.params.id);
         if (!item) return res.status(404).send('Not found');
 
         return res.status(200).json({
@@ -41,15 +42,15 @@ function createInventoryRoutes({ cache, upload, inventoryStore }) {
         });
     });
 
-    router.put('/inventory/:id', (req, res) => {
-        const item = inventoryStore.updateItem(req.params.id, req.body);
+    router.put('/inventory/:id', async (req, res) => {
+        const item = await inventoryStore.updateItem(req.params.id, req.body);
         if (!item) return res.status(404).send('Not found');
 
         return res.status(200).json(item);
     });
 
-    router.get('/inventory/:id/photo', (req, res) => {
-        const item = inventoryStore.findById(req.params.id);
+    router.get('/inventory/:id/photo', async (req, res) => {
+        const item = await inventoryStore.findById(req.params.id);
         if (!item || !item.photo) return res.status(404).send('Not found');
 
         const photoPath = path.resolve(cache, item.photo);
@@ -57,8 +58,8 @@ function createInventoryRoutes({ cache, upload, inventoryStore }) {
         return res.sendFile(photoPath);
     });
 
-    router.put('/inventory/:id/photo', upload.single('photo'), (req, res) => {
-        const item = inventoryStore.findById(req.params.id);
+    router.put('/inventory/:id/photo', upload.single('photo'), async (req, res) => {
+        const item = await inventoryStore.findById(req.params.id);
         if (!item) return res.status(404).send('Not found');
 
         if (req.file) {
@@ -66,14 +67,14 @@ function createInventoryRoutes({ cache, upload, inventoryStore }) {
                 const oldPath = path.join(cache, item.photo);
                 if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
             }
-            inventoryStore.updatePhoto(item.id, req.file.filename);
+            await inventoryStore.updatePhoto(item.id, req.file.filename);
         }
 
         return res.status(200).send('Photo updated');
     });
 
-    router.delete('/inventory/:id', (req, res) => {
-        const deleted = inventoryStore.removeItem(req.params.id);
+    router.delete('/inventory/:id', async (req, res) => {
+        const deleted = await inventoryStore.removeItem(req.params.id);
         if (!deleted) return res.status(404).send('Not found');
 
         if (deleted.photo) {

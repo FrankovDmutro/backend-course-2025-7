@@ -8,4 +8,7 @@ startServer({
     rootDir: path.resolve(__dirname, '..'),
     enableStaticRoutes: false,
     startMessage: 'API сервер запущено'
+}).catch((error) => {
+    console.error('Помилка запуску API сервера:', error);
+    process.exit(1);
 });

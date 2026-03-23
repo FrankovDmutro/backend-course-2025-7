@@ -8,10 +8,10 @@ function shouldIncludePhoto(value) {
 function createSearchRoutes({ inventoryStore }) {
     const router = express.Router();
 
-    const handleSearch = (source, req, res) => {
+    const handleSearch = async (source, req, res) => {
         const id = source.id;
         const includePhoto = source.includePhoto || source.has_photo;
-        const item = inventoryStore.findById(id);
+        const item = await inventoryStore.findById(id);
 
         if (!item) return res.status(404).send('Not Found');
 
@@ -23,8 +23,8 @@ function createSearchRoutes({ inventoryStore }) {
         return res.status(200).json(responseData);
     };
 
-    router.get('/search', (req, res) => handleSearch(req.query, req, res));
-    router.post('/search', (req, res) => handleSearch(req.body, req, res));
+    router.get('/search', async (req, res) => handleSearch(req.query, req, res));
+    router.post('/search', async (req, res) => handleSearch(req.body, req, res));
 
     return router;
 }
