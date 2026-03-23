@@ -73,16 +73,6 @@ app (Nginx gateway) -> front (Nginx static, внутрішній)
 - app звертається до front як front:80;
 - back звертається до db як db:5432.
 
-## Важливий факт для захисту
-
-У поточній реалізації інвентар зберігається у JSON, а не в PostgreSQL.
-
-Де це видно:
-- back/store/inventoryStore.js читає/пише через fs;
-- дані зберігаються у app/data.json;
-- db/init/01-init.sql створює таблицю, але API зараз не виконує SQL-операції.
-
-Тобто база підготовлена, але поточний storage для API файловий.
 
 ## Потік запиту (приклад POST /register)
 
@@ -115,34 +105,4 @@ docker compose logs -f db
 docker compose down
 ```
 
-## Як перевірити, що все працює
 
-1. Перевір API через gateway:
-
-```bash
-curl http://localhost:3000/inventory
-```
-
-2. Створи тестовий запис:
-
-```bash
-curl -X POST http://localhost:3000/register -F "inventory_name=Test item" -F "description=demo"
-```
-
-3. Перевір JSON у контейнері back:
-
-```bash
-docker compose exec back sh -lc "cat /usr/src/app/app/data.json"
-```
-
-4. Перевір таблицю в PostgreSQL:
-
-```bash
-docker compose exec db psql -U postgres -d inventory -c "SELECT COUNT(*) FROM inventory_items;"
-```
-
-Якщо після POST зростають дані в data.json, а не в таблиці, значить API зараз працює через файлове сховище.
-
-## Швидкий текст для захисту
-
-У проєкті реалізована gateway-архітектура: зовні доступний лише Nginx-контейнер app на порту 3000. Він маршрутизує API-запити в back, а статичні файли у front. Back/front/db ізольовані у внутрішній Docker-мережі без публічних портів. Проєкт підіймається через Docker Compose однією командою. На поточному етапі API зберігає інвентар у app/data.json, а PostgreSQL контейнер і схема вже підготовлені для переходу на SQL-збереження.
