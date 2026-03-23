@@ -1,112 +1,148 @@
 # backend-course-2025-7
 
-## Чому запити йдуть через app, а не напряму в back
+## Коротко про проєкт
 
-У цьому проєкті сервіс app працює як gateway (reverse proxy) і єдина публічна точка входу.
+Це багатоконтейнерний проєкт на Docker Compose.
 
-- app (Nginx) відкритий назовні на порту 3000.
-- back (Node.js API) доступний тільки всередині Docker-мережі та не має опублікованого порту на хості.
-- front (статичний HTML) також внутрішній.
+Головна ідея:
+- зовні відкритий тільки один сервіс app на порту 3000;
+- весь трафік проходить через Nginx gateway;
+- back, front і db працюють у внутрішній Docker-мережі.
 
-Тому весь клієнтський трафік іде на http://localhost:3000, а app маршрутизує його далі:
+Тобто користувач завжди звертається лише до http://localhost:3000.
 
-- API-шляхи та документація йдуть у back.
-- HTML-сторінки та інші статичні шляхи йдуть у front.
+## Архітектура
 
-Це налаштовано тут:
+Клієнт (Browser/Postman/curl)
+-> app (Nginx gateway, порт 3000)
+-> back (Express API, порт 3001 у внутрішній мережі)
+-> db (PostgreSQL, порт 5432 у внутрішній мережі)
 
-- експозиція сервісів: compose.yml
-- правила gateway: app/nginx.gateway.conf
+Окремо:
+app (Nginx gateway) -> front (Nginx static, внутрішній)
 
-Переваги такого підходу:
+## Чому порти виглядають заблокованими
 
-- Одна URL-адреса для браузера, тестів і API-клієнтів.
-- back не відкритий напряму назовні.
-- Єдина точка для маршрутизації та proxy-заголовків.
+У compose.yml проброшений на хост тільки порт app:
 
-## Потік запиту
+- 3000:3000
 
-1. Клієнт надсилає запит на http://localhost:3000
-2. app перевіряє шлях за конфігом Nginx
-3. Якщо шлях відповідає regex для API, app проксить запит на http://back:3001
-4. Інакше app проксить запит на http://front:80
-5. back виконує бізнес-логіку і повертає відповідь через app
+Для back/front/db немає секції ports, тому:
+- back недоступний напряму з localhost:3001;
+- front недоступний напряму;
+- db недоступна напряму з хоста (без додаткового пробросу порту).
 
-## Правила маршрутизації (поточні)
+Це зроблено спеціально: одна публічна точка входу через gateway.
 
-У app/nginx.gateway.conf:
+## Як працює Nginx gateway
 
-- / перенаправляє на /RegisterForm.html
-- /(inventory|register|search|api-docs)(/.*)? -> back:3001
-- усі інші шляхи -> front:80
+Конфіг: app/nginx.gateway.conf
 
-## Огляд сервісів
+Правила:
+1. / -> редірект на /RegisterForm.html
+2. /(inventory|register|search|api-docs)(/.*)? -> проксі на back:3001
+3. всі інші шляхи -> проксі на front:80
 
-- app: Nginx gateway, публічний, порт 3000
-- back: API-сервіс (Express), внутрішній
-- front: сервер статичних HTML, внутрішній
-- db: PostgreSQL, внутрішній
+Отже:
+- API йде у back;
+- HTML/CSS/JS віддає front;
+- для клієнта все виглядає як один сервер на localhost:3000.
 
-## Запуск через Docker
+## Ролі сервісів
+
+- app: Nginx reverse proxy, єдина публічна точка входу
+- back: Node.js/Express API з бізнес-логікою
+- front: статичні HTML-сторінки
+- db: PostgreSQL (внутрішній сервіс)
+
+## Як Docker використовується в проєкті
+
+1. Dockerfile збирає образ для back:
+- базовий образ node:22-alpine;
+- інсталяція залежностей з app/package.json;
+- копіювання app, back, front у контейнер.
+
+2. compose.yml підіймає всі сервіси разом:
+- app, back, front, db;
+- налаштовує залежності depends_on;
+- для db є healthcheck;
+- для db використовується volume db_data для збереження даних.
+
+3. Контейнери спілкуються у внутрішній мережі за іменами сервісів:
+- app звертається до back як back:3001;
+- app звертається до front як front:80;
+- back звертається до db як db:5432.
+
+## Важливий факт для захисту
+
+У поточній реалізації інвентар зберігається у JSON, а не в PostgreSQL.
+
+Де це видно:
+- back/store/inventoryStore.js читає/пише через fs;
+- дані зберігаються у app/data.json;
+- db/init/01-init.sql створює таблицю, але API зараз не виконує SQL-операції.
+
+Тобто база підготовлена, але поточний storage для API файловий.
+
+## Потік запиту (приклад POST /register)
+
+1. Клієнт надсилає POST http://localhost:3000/register
+2. app (Nginx) маршрутизує запит у back:3001
+3. back обробляє запит через inventoryRoutes
+4. inventoryStore додає запис у app/data.json
+5. Відповідь повертається клієнту через app
+
+## Запуск проєкту
 
 З кореня проєкту:
 
-1. Зібрати та запустити:
+```bash
+docker compose up -d --build
+docker compose ps
+```
 
-   docker compose up -d --build
+Логи:
 
-2. Перевірити статус:
+```bash
+docker compose logs -f app
+docker compose logs -f back
+docker compose logs -f db
+```
 
-   docker compose ps
+Зупинка:
 
-3. Подивитися логи за потреби:
+```bash
+docker compose down
+```
 
-   docker compose logs -f app
-   docker compose logs -f back
+## Як перевірити, що все працює
 
-## Тестування endpoint-ів без Postman
+1. Перевір API через gateway:
 
-Є готовий smoke-test скрипт:
+```bash
+curl http://localhost:3000/inventory
+```
 
-- scripts/smoke-test-docker.js
+2. Створи тестовий запис:
 
-Запуск:
+```bash
+curl -X POST http://localhost:3000/register -F "inventory_name=Test item" -F "description=demo"
+```
 
-node scripts/smoke-test-docker.js
+3. Перевір JSON у контейнері back:
 
-Опційно можна передати свій base URL:
+```bash
+docker compose exec back sh -lc "cat /usr/src/app/app/data.json"
+```
 
-BASE_URL=http://localhost:3000 node scripts/smoke-test-docker.js
+4. Перевір таблицю в PostgreSQL:
 
-Скрипт перевіряє ключові endpoint-и:
+```bash
+docker compose exec db psql -U postgres -d inventory -c "SELECT COUNT(*) FROM inventory_items;"
+```
 
-- GET /inventory
-- POST /register
-- GET /inventory/:id
-- PUT /inventory/:id
-- GET /search
-- GET /api-docs
-- DELETE /inventory/:id
-- GET /inventory/:id after delete
+Якщо після POST зростають дані в data.json, а не в таблиці, значить API зараз працює через файлове сховище.
 
-## Корисний troubleshooting
+## Швидкий текст для захисту
 
-Якщо запити повертають 502:
-
-1. Перевір стан контейнера back:
-
-   docker compose ps
-
-2. Перевір логи бекенда:
-
-   docker compose logs --tail=200 back
-
-3. Виконай чисту перебудову:
-
-   docker compose down
-   docker compose up -d --build
-
-За потреби перебудуй без кешу:
-
-- docker compose build --no-cache
-- docker compose up -d
+У проєкті реалізована gateway-архітектура: зовні доступний лише Nginx-контейнер app на порту 3000. Він маршрутизує API-запити в back, а статичні файли у front. Back/front/db ізольовані у внутрішній Docker-мережі без публічних портів. Проєкт підіймається через Docker Compose однією командою. На поточному етапі API зберігає інвентар у app/data.json, а PostgreSQL контейнер і схема вже підготовлені для переходу на SQL-збереження.
