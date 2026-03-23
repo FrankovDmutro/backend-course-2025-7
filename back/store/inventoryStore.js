@@ -2,6 +2,13 @@ const fs = require('fs');
 
 let inventory = [];
 let dataFilePath = null;
+const storeLogsEnabled = (process.env.DB_VERBOSE_LOGS || process.env.NODE_ENV !== 'production').toString() !== 'false';
+
+function logStore(message) {
+    if (storeLogsEnabled) {
+        console.log(`[JSON] ${message}`);
+    }
+}
 
 // Допоміжна функція для збереження в JSON
 function saveToFile() {
@@ -21,23 +28,29 @@ async function initialize(filePath) {
             const data = fs.readFileSync(filePath, 'utf-8');
             inventory = JSON.parse(data) || [];
             console.log(`✓ Дані завантажені з ${filePath}`);
+            logStore(`initialize -> loaded ${inventory.length} items`);
         } else {
             inventory = [];
             saveToFile();
             console.log(`✓ Новий файл даних створений: ${filePath}`);
+            logStore('initialize -> created empty data file');
         }
     } catch (error) {
         console.error(`Помилка при завантаженні даних: ${error.message}`);
         inventory = [];
+        logStore(`initialize -> fallback to empty store (${error.message})`);
     }
 }
 
 async function getAll() {
+    logStore(`getAll -> ${inventory.length} items`);
     return inventory;
 }
 
 async function findById(id) {
-    return inventory.find(item => item.id === id);
+    const item = inventory.find(existingItem => existingItem.id === id) || null;
+    logStore(`findById(${id}) -> ${item ? 'found' : 'not found'}`);
+    return item;
 }
 
 async function addItem({ name, description = '', photo = null }) {
@@ -50,6 +63,7 @@ async function addItem({ name, description = '', photo = null }) {
 
     inventory.push(newItem);
     saveToFile();
+    logStore(`addItem -> inserted id=${newItem.id}, name="${name}"`);
     return newItem;
 }
 
@@ -61,6 +75,7 @@ async function updateItem(id, { name, description }) {
     if (description) item.description = description;
 
     saveToFile();
+    logStore(`updateItem(${id}) -> updated`);
     return item;
 }
 
@@ -70,6 +85,7 @@ async function updatePhoto(id, photoFilename) {
 
     item.photo = photoFilename;
     saveToFile();
+    logStore(`updatePhoto(${id}) -> updated photo=${photoFilename}`);
     return item;
 }
 
@@ -80,6 +96,7 @@ async function removeItem(id) {
     const deleted = inventory[index];
     inventory.splice(index, 1);
     saveToFile();
+    logStore(`removeItem(${id}) -> deleted`);
     return deleted;
 }
 

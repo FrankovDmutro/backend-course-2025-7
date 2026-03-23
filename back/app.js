@@ -5,6 +5,8 @@ const createSearchRoutes = require('./routes/searchRoutes');
 const createStaticRoutes = require('./routes/staticRoutes');
 const createOpenApiSpec = require('./docs/openapi');
 
+const requestLogsEnabled = (process.env.REQUEST_LOGS || 'true').toLowerCase() !== 'false';
+
 function createApp({
     host,
     port,
@@ -19,6 +21,20 @@ function createApp({
 
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+
+    if (requestLogsEnabled) {
+        app.use((req, res, next) => {
+            const startedAt = Date.now();
+            console.log(`[API] -> ${req.method} ${req.originalUrl}`);
+
+            res.on('finish', () => {
+                const durationMs = Date.now() - startedAt;
+                console.log(`[API] <- ${req.method} ${req.originalUrl} ${res.statusCode} ${durationMs}ms`);
+            });
+
+            next();
+        });
+    }
 
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 

@@ -25,6 +25,8 @@ services:
     command: ["node", "./back/main.js"]
     environment:
       - NODE_ENV=development
+      - REQUEST_LOGS=true
+      - DB_VERBOSE_LOGS=true
       - HOST=0.0.0.0
       - PORT=3001
       - STORAGE_BACKEND=postgres
@@ -47,6 +49,7 @@ services:
     container_name: front
     volumes:
       - ./front:/usr/share/nginx/html:ro
+      - ./front/nginx.front.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
 
   # db: PostgreSQL із ініціалізацією схеми з docker-entrypoint-initdb.d
